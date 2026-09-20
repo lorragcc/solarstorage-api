@@ -1,4 +1,4 @@
-# ⚡ SolarStorage API — RESTful Backend Service
+# ☀️ SolarStorage API — RESTful Backend Service
 
 API RESTful de alta performance desenvolvida em Python 3 com Flask, SQLAlchemy e Pydantic para gestão cadastral, monitoramento e dimensionamento elétrico de **Usinas Fotovoltaicas** e **Bancos de Baterias (Battery Energy Storage Systems - BESS)**.
 
@@ -46,7 +46,7 @@ solarstorage-api/
   * **`bateria_controller.py`:** Controla as operações de adição, edição e exclusão de bancos BESS vinculados a uma usina pai.
 * **`model/` (Mapeamento de Dados / ORM):**
   * **`base.py`:** Define a classe base abstrata do SQLAlchemy para criação e integração das tabelas no SQLite.
-  * **`usina.py`:** Entidade relacional que mapeia a usina solar, estabelecendo a relação de 1 para N (`relationship`) e deleção em cascata (`cascade="all, delete-orphan"`) com o banco de baterias.
+  * **`usina.py`:** Entidade relacional que mapeia a usina solar, estabelecendo a relação de $1$ para $N$ (`relationship`) e deleção em cascata (`cascade="all, delete-orphan"`) com o banco de baterias.
   * **`bateria.py`:** Entidade relacional contendo os parâmetros elétricos dos módulos ($Ah$, $V$, $\text{DoD } \%$ e quantidade) e a chave estrangeira `usina_id`.
 * **`schemas/` (Validação DTO & Swagger):**
   * **`usina.py`:** Contém os schemas Pydantic de entrada/saída (`UsinaSchema`, `UsinaViewSchema`, etc.) e a função serializadora `apresenta_usina()`, responsável pelo cálculo matemático dinâmico da energia armazenada em $kWh$.
@@ -118,12 +118,12 @@ $$\text{Capacidade Útil (kWh)} = \frac{\text{Capacidade (Ah)} \times \text{Tens
 ### 🔍 Explicação dos Componentes:
 1. **Capacidade ($Ah$):** Mede a quantidade de carga elétrica contida no módulo.
 2. **Tensão Nominal ($V$):** Converte a capacidade de carga pura em energia de trabalho em Watt-hora ($Wh = Ah \times V$).
-3. **Profundidade de Descarga ($\text{DoD \%}$):** Aplica a margem de segurança técnica para preservar a vida útil da bateria ($\frac{\text{DoD}}{100}$).
+3. **Profundidade de Descarga ($\text{DoD } \%$):** Aplica a margem de segurança técnica para preservar a vida útil da bateria ($\frac{\text{DoD}}{100}$).
 4. **Quantidade ($Q$):** Multiplica a capacidade unitária pelo total de módulos do banco.
 5. **Divisor $1000$:** Converte a unidade de Watt-hora ($Wh$) para Quilowatt-hora ($kWh$).
 
 ### 📊 Exemplo Prático:
-Para um banco com **5 baterias de Lítio (LiFePO4)** ($100\text{ Ah}$, $48\text{ V}$, $\text{DoD } 80\%$):
+Para um banco com **$5$ baterias de Lítio (LiFePO4)** ($100\text{ Ah}$, $48\text{ V}$, $\text{DoD } 80\%$):
 
 $$\text{Capacidade Útil (kWh)} = \frac{100 \times 48 \times \left(\frac{80}{100}\right) \times 5}{1000} = \frac{4800 \times 0.80 \times 5}{1000} = 19.20\text{ kWh}$$
 
@@ -141,6 +141,18 @@ $$\text{Capacidade Útil (kWh)} = \frac{100 \times 48 \times \left(\frac{80}{100
 | **Bateria** | `POST` | `/bateria` | Adiciona um banco de baterias a uma usina | `200 OK`, `400 Bad Request`, `404` |
 | **Bateria** | `PUT` | `/bateria?id={id}` | Atualiza especificações técnicas da bateria | `200 OK`, `400 Bad Request`, `404` |
 | **Bateria** | `DELETE` | `/bateria?id={id}` | Exclui um banco de baterias individual | `200 OK`, `404 Not Found` |
+
+---
+
+## 📌 Sequência Recomendada para Testes da API (Workflow do Avaliador)
+
+Para validar e testar a API no **Swagger UI** de forma fluida, siga a ordem sugerida abaixo:
+
+1. **`GET /usinas` (Passo Inicial Recomendado):** Execute esta rota primeiro para visualizar os registros existentes e obter os **IDs das usinas** e os **IDs das baterias** cadastradas.
+2. **`POST /usina`:** Cadastre uma nova usina enviando o JSON com as especificações técnicas (o nome deve ser único).
+3. **`POST /bateria`:** Adicione um banco de baterias vinculado utilizando o `usina_id` obtido no passo 1 ou no retorno da usina criada.
+4. **`PUT /usina?id={id}` / `PUT /bateria?id={id}`:** Informe o ID da usina ou bateria no parâmetro `query` para atualizar os seus dados cadastrais ou elétricos.
+5. **`DELETE /usina?id={id}` / `DELETE /bateria?id={id}`:** Utilize os IDs obtidos previamente para remover um módulo de bateria individual ou a usina inteira (deleção em cascata).
 
 ---
 
@@ -164,6 +176,12 @@ cd solarstorage-api
   source env/bin/activate
   ```
 
+> **Nota para Windows (PowerShell):** Caso receba um erro de permissão ao ativar o ambiente virtual (`ps1 não pode ser carregado`), execute o comando abaixo no PowerShell antes de ativar:
+> ```powershell
+> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+> ```
+> Ou utilize o terminal **Command Prompt (CMD)**.
+
 ### 3. Instalar Dependências
 ```bash
 pip install -r requirements.txt
@@ -177,17 +195,9 @@ O servidor estará acessível em `http://127.0.0.1:5000`.
 
 ---
 
-> **Nota para Windows (PowerShell):** Caso receba um erro de permissão ao ativar o ambiente virtual (`ps1 não pode ser carregado`), execute o comando abaixo no PowerShell antes de ativar:
-> ```powershell
-> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-> ```
-> Ou utilize o terminal **Command Prompt (CMD)**.
-
 ## 📑 Documentação Interativa (OpenAPI 3 / Swagger)
 
 Com a API em execução, acesse no navegador:
 * **Swagger UI:** [http://127.0.0.1:5000/openapi/swagger](http://127.0.0.1:5000/openapi/swagger)
 * **RapiDoc:** [http://127.0.0.1:5000/openapi/rapidoc](http://127.0.0.1:5000/openapi/rapidoc)
 * **Especificação JSON OpenAPI:** [http://127.0.0.1:5000/openapi/openapi.json](http://127.0.0.1:5000/openapi/openapi.json)
-
----
