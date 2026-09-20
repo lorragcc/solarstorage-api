@@ -1,54 +1,72 @@
 """
-Módulo de Rotas: Usina Fotovoltaica
+Módulo de Rotas: Usina
 Projeto: SolarStorage — Gestão Fotovoltaica & Baterias
 """
 
-from datetime import datetime
-from flask_openapi3 import Tag, OpenAPI
+from flask_openapi3 import OpenAPI, Tag
 from model import Session, Usina
 from schemas.usina import (
-    UsinaSchema, UsinaBuscaPorIdSchema, UsinaAtualizaSchema,
-    UsinaViewSchema, ListaUsinasSchema, apresenta_usina
+    UsinaSchema, 
+    UsinaBuscaPorIdSchema, 
+    UsinaAtualizaSchema, 
+    UsinaViewSchema, 
+    ListaUsinasSchema, 
+    apresenta_usina
 )
 from schemas.error import ErrorSchema
 
-usina_tag = Tag(name="Usina", description="Operações de CRUD de Usinas Fotovoltaicas")
-
-
-def converter_para_datetime(data_str):
-    """
-    Converte uma string de data (YYYY-MM-DD ou ISO) para um objeto datetime.date do Python.
-    Resolve o erro de conversão nativa do SQLAlchemy com SQLite.
-    """
-    if not data_str:
-        return datetime.today().date()
-    
-    if isinstance(data_str, datetime):
-        return data_str.date()
-    
-    if hasattr(data_str, 'year'):
-        return data_str
-
-    try:
-        # Tenta o formato ISO padrão YYYY-MM-DD
-        return datetime.strptime(str(data_str).split('T')[0], "%Y-%m-%d").date()
-    except ValueError:
-        try:
-            # Tenta o formato brasileiro DD/MM/YYYY
-            return datetime.strptime(str(data_str), "%d/%m/%Y").date()
-        except ValueError:
-            return datetime.today().date()
+# Tag com instrução explícita de fluxo para o Swagger UI
+usina_tag = Tag(
+    name="Usina", 
+    description="Operações nas Usinas Fotovoltaicas. 💡 Para atualizar ou remover usinas, consulte previamente a lista de IDs existentes executando a rota GET /usinas."
+)
 
 
 def registrar_rotas_usina(app: OpenAPI):
+    """Registra todos os endpoints de usinas no aplicativo Flask-OpenAPI3."""
+
+    @app.get('/usinas', tags=[usina_tag], responses={"200": ListaUsinasSchema, "400": ErrorSchema})
+    def obter_usinas():
+        """
+        Retorna a listagem completa de usinas fotovoltaicas e seus respectivos bancos de baterias (BESS).
+        
+        📌 Dica de Teste: Utilize esta rota em primeiro lugar para obter os IDs de usinas e baterias necessários para os testes de atualização (PUT) e remoção (DELETE).
+        """
+        session = Session()
+        try:
+            usinas = session.query(Usina).all()
+            result = [apresenta_usina(u) for u in usinas]
+            return {"usinas": result}, 200
+        except Exception as e:
+            return {"message": f"Erro ao buscar usinas: {str(e)}"}, 400
+
+    @app.get('/usina', tags=[usina_tag], responses={"200": UsinaViewSchema, "404": ErrorSchema})
+    def obter_usina_por_id(query: UsinaBuscaPorIdSchema):
+        """
+        Busca os dados detalhados de uma única usina fotovoltaica pelo seu ID.
+        
+        📌 Dica de Teste: Caso não saiba qual `id` informar, execute primeiro a rota GET /usinas.
+        """
+        session = Session()
+        usina = session.query(Usina).filter(Usina.id == query.id).first()
+        if not usina:
+            return {"message": "Usina não encontrada."}, 404
+
+        return apresenta_usina(usina), 200
 
     @app.post('/usina', tags=[usina_tag], responses={"200": UsinaViewSchema, "400": ErrorSchema, "409": ErrorSchema})
-    def cadastrar_usina(body: UsinaSchema):
-        """Cadastra uma nova usina fotovoltaica no banco de dados."""
+    def adicionar_usina(body: UsinaSchema):
+        """
+        Cadastra uma nova usina fotovoltaica no banco de dados.
+        
+        📌 Dica de Teste: O nome da usina deve ser único. Nomes duplicados retornarão status 409 Conflict.
+        """
         session = Session()
+
+        # Validação de Unicidade
         usina_existente = session.query(Usina).filter(Usina.nome == body.nome).first()
         if usina_existente:
-            return {"message": "Já existe uma usina cadastrada com este nome."}, 409
+            return {"message": f"Já existe uma usina cadastrada com o nome '{body.nome}'."}, 409
 
         try:
             nova_usina = Usina(
@@ -57,42 +75,32 @@ def registrar_rotas_usina(app: OpenAPI):
                 tensao_sistema_v=body.tensao_sistema_v,
                 tipo_sistema=body.tipo_sistema,
                 cidade=body.cidade,
-                data_instalacao=converter_para_datetime(body.data_instalacao)
+                data_instalacao=body.data_instalacao
             )
             session.add(nova_usina)
             session.commit()
             return apresenta_usina(nova_usina), 200
         except Exception as e:
             session.rollback()
-            return {"message": f"Erro interno ao cadastrar usina: {str(e)}"}, 400
-
-    @app.get('/usinas', tags=[usina_tag], responses={"200": ListaUsinasSchema})
-    def listar_usinas():
-        """Lista todas as usinas cadastradas juntamente com seus bancos de baterias."""
-        session = Session()
-        usinas = session.query(Usina).all()
-        return {"usinas": [apresenta_usina(u) for u in usinas]}, 200
-
-    @app.get('/usina', tags=[usina_tag], responses={"200": UsinaViewSchema, "404": ErrorSchema})
-    def buscar_usina(query: UsinaBuscaPorIdSchema):
-        """Busca uma usina específica pelo seu ID."""
-        session = Session()
-        usina = session.query(Usina).filter(Usina.id == query.id).first()
-        if not usina:
-            return {"message": "Usina não encontrada."}, 404
-        return apresenta_usina(usina), 200
+            return {"message": f"Erro ao cadastrar usina: {str(e)}"}, 400
 
     @app.put('/usina', tags=[usina_tag], responses={"200": UsinaViewSchema, "400": ErrorSchema, "404": ErrorSchema, "409": ErrorSchema})
     def atualizar_usina(query: UsinaBuscaPorIdSchema, body: UsinaAtualizaSchema):
-        """Atualiza as especificações técnicas ou cadastrais de uma usina existente."""
+        """
+        Atualiza as especificações técnicas ou dados cadastrais de uma usina existente.
+        
+        📌 Dica de Teste: Para obter o `id` da usina a ser atualizada, consulte previamente a rota GET /usinas.
+        """
         session = Session()
         usina = session.query(Usina).filter(Usina.id == query.id).first()
         if not usina:
-            return {"message": "Usina não encontrada."}, 404
+            return {"message": "Usina não encontrada para atualização."}, 404
 
-        conflito_nome = session.query(Usina).filter(Usina.nome == body.nome, Usina.id != query.id).first()
-        if conflito_nome:
-            return {"message": "Outra usina já utiliza este nome no sistema."}, 409
+        # Verifica duplicidade de nome se o nome for alterado
+        if body.nome != usina.nome:
+            nome_duplicado = session.query(Usina).filter(Usina.nome == body.nome, Usina.id != query.id).first()
+            if nome_duplicado:
+                return {"message": f"O nome '{body.nome}' já está em uso por outra usina."}, 409
 
         try:
             usina.nome = body.nome
@@ -100,7 +108,7 @@ def registrar_rotas_usina(app: OpenAPI):
             usina.tensao_sistema_v = body.tensao_sistema_v
             usina.tipo_sistema = body.tipo_sistema
             usina.cidade = body.cidade
-            usina.data_instalacao = converter_para_datetime(body.data_instalacao)
+            usina.data_instalacao = body.data_instalacao
             
             session.commit()
             return apresenta_usina(usina), 200
@@ -109,17 +117,21 @@ def registrar_rotas_usina(app: OpenAPI):
             return {"message": f"Erro ao atualizar usina: {str(e)}"}, 400
 
     @app.delete('/usina', tags=[usina_tag], responses={"200": ErrorSchema, "404": ErrorSchema})
-    def deletar_usina(query: UsinaBuscaPorIdSchema):
-        """Remove uma usina do sistema (Aplica exclusão em cascata nas baterias)."""
+    def remover_usina(query: UsinaBuscaPorIdSchema):
+        """
+        Remove uma usina do sistema e expurga em cascata todos os seus módulos de bateria vinculados.
+        
+        📌 Dica de Teste: Para obter o `id` da usina a ser removida, consulte previamente a rota GET /usinas.
+        """
         session = Session()
         usina = session.query(Usina).filter(Usina.id == query.id).first()
         if not usina:
-            return {"message": "Usina não encontrada."}, 404
+            return {"message": "Usina não encontrada para remoção."}, 404
 
         try:
             session.delete(usina)
             session.commit()
-            return {"message": "Usina e seus módulos de bateria foram removidos."}, 200
+            return {"message": "Usina e seus módulos BESS foram removidos com sucesso."}, 200
         except Exception as e:
             session.rollback()
-            return {"message": f"Erro ao excluir usina: {str(e)}"}, 400
+            return {"message": f"Erro ao remover usina: {str(e)}"}, 400
