@@ -177,6 +177,12 @@ O servidor estará acessível em `http://127.0.0.1:5000`.
 
 ---
 
+> **Nota para Windows (PowerShell):** Caso receba um erro de permissão ao ativar o ambiente virtual (`ps1 não pode ser carregado`), execute o comando abaixo no PowerShell antes de ativar:
+> ```powershell
+> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+> ```
+> Ou utilize o terminal **Command Prompt (CMD)**.
+
 ## 📑 Documentação Interativa (OpenAPI 3 / Swagger)
 
 Com a API em execução, acesse no navegador:
