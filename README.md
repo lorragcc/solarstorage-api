@@ -93,7 +93,7 @@ erDiagram
 
 * **`nome` (String / Obrigatório / Único):** Identificador textual da usina (ex: `"Usina Sol Nascente"`). A API valida a unicidade rejeitando duplicidades com código `409 Conflict`.
 * **`potencia_kwp` (Float / Obrigatório):** Potência nominal total do arranjo de painéis solares em **Quilowatt-pico ($kWp$)**.
-* **`tensao_sistema_v` (Float / Obrigatório):** Tensão elétrica do barramento em **Volts ($V$)** (ex: $48\text{ V}$, $220\text{ V}$, $380\text{ V}$). Serve como valor de *fallback* técnico para o cálculo caso a bateria não informe tensão nominal individual.
+* **`tensao_sistema_v` (Float / Obrigatório):** Tensão elétrica do barramento em **Volts ($V$)** (ex: $48\text{ V}$, $220\text{ V}$, $380\text{ V}$). Define o nível de tensão de trabalho do inversor central do sistema.
 * **`tipo_sistema` (String / Obrigatório):** Topologia do sistema (`Grid-Tied (On-Grid)`, `Off-Grid` ou `Híbrido (Backup + Grid)`).
 * **`cidade` (String / Obrigatório):** Localização geográfica cadastrada no padrão `"Município/UF"` (ex: `"Santa Isabel/SP"`).
 * **`data_instalacao` (Date / Obrigatório):** Data de comissionamento/entrada em operação comercial.
