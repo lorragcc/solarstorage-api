@@ -14,6 +14,7 @@ from schemas.usina import (
     apresenta_usina
 )
 from schemas.error import ErrorSchema
+from datetime import datetime, date
 
 # Tag com instrução explícita de fluxo para o Swagger UI
 usina_tag = Tag(
@@ -108,7 +109,12 @@ def registrar_rotas_usina(app: OpenAPI):
             usina.tensao_sistema_v = body.tensao_sistema_v
             usina.tipo_sistema = body.tipo_sistema
             usina.cidade = body.cidade
-            usina.data_instalacao = body.data_instalacao
+            
+            # Conversão pontual para o SQLite aceitar a data
+            if isinstance(body.data_instalacao, str):
+                usina.data_instalacao = datetime.strptime(body.data_instalacao, "%Y-%m-%d")
+            else:
+                usina.data_instalacao = body.data_instalacao
             
             session.commit()
             return apresenta_usina(usina), 200
