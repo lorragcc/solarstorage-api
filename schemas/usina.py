@@ -17,10 +17,10 @@ class UsinaBuscaPorIdSchema(BaseModel):
 
 class UsinaAtualizaSchema(BaseModel):
     """ Define os campos para atualização de uma usina """
-    nome: str = Field(..., example="Usina Solar Alpha")
-    potencia_kwp: float = Field(..., example=20.0)
+    nome: str = Field(..., example="Usina Teste MVP")
+    potencia_kwp: float = Field(..., example=200.0)
     tensao_sistema_v: float = Field(..., example=48.0)
-    tipo_sistema: str = Field(..., example="Híbrido (Backup + Grid)")
+    tipo_sistema: str = Field(..., example="Off-Grid")
     cidade: str = Field(..., example="Santa Isabel, SP")
     data_instalacao: str = Field(..., example="2026-08-22")
 
